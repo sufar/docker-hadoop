@@ -1,0 +1,139 @@
+version: "3"
+
+services:
+  namenode:
+    image: sufar/hadoop-namenode:3.3.0
+    container_name: namenode
+    restart: always
+    ports:
+      - 9870:9870
+      - 9000:9000
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop.env
+    networks:
+      spark_network:
+        ipv4_address: 172.21.1.1
+    extra_hosts:
+      - "datanode1:172.21.1.11"
+      - "datanode2:172.21.1.12"
+      - "resourcemanager:172.21.1.21"
+      - "nodemanager:172.21.1.31"
+      - "historyserver:172.21.1.41"
+
+  datanode1:
+    image: sufar/hadoop-datanode:3.3.0
+    container_name: datanode1
+    restart: always
+    volumes:
+      - hadoop_datanode1:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
+    networks:
+      spark_network:
+        ipv4_address: 172.21.1.11
+    extra_hosts:
+      - "namenode:172.21.1.1"
+      - "datanode2:172.21.1.12"
+      - "resourcemanager:172.21.1.21"
+      - "nodemanager:172.21.1.31"
+      - "historyserver:172.21.1.41"
+
+  datanode2:
+    image: sufar/hadoop-datanode:3.3.0
+    container_name: datanode2
+    restart: always
+    volumes:
+      - hadoop_datanode2:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
+    networks:
+      spark_network:
+        ipv4_address: 172.21.1.12
+    extra_hosts:
+      - "namenode:172.21.1.1"
+      - "datanode1:172.21.1.11"
+      - "resourcemanager:172.21.1.21"
+      - "nodemanager:172.21.1.31"
+      - "historyserver:172.21.1.41"
+  
+  resourcemanager:
+    image: sufar/hadoop-resourcemanager:3.3.0
+    container_name: resourcemanager
+    restart: always
+    ports:
+      - 8088:8088
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
+    env_file:
+      - ./hadoop.env
+    networks:
+      spark_network:
+        ipv4_address: 172.21.1.21
+    extra_hosts:
+      - "namenode:172.21.1.1"
+      - "datanode1:172.21.1.11"
+      - "datanode2:172.21.1.12"
+      - "nodemanager:172.21.1.31"
+      - "historyserver:172.21.1.41"
+
+  nodemanager:
+    image: sufar/hadoop-nodemanager:3.3.0
+    container_name: nodemanager
+    restart: always
+    ports:
+      - 8042:8042
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    env_file:
+      - ./hadoop.env
+    networks:
+      spark_network:
+        ipv4_address: 172.21.1.31
+    extra_hosts:
+      - "namenode:172.21.1.1"
+      - "datanode1:172.21.1.11"
+      - "datanode2:172.21.1.12"
+      - "resourcemanager:172.21.1.21"
+      - "historyserver:172.21.1.41"
+  
+  historyserver:
+    image: sufar/hadoop-historyserver:3.3.0
+    container_name: historyserver
+    restart: always
+    ports:
+      - 8188:8188
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+    volumes:
+      - hadoop_historyserver:/hadoop/yarn/timeline
+    env_file:
+      - ./hadoop.env
+    networks:
+      spark_network:
+        ipv4_address: 172.21.1.41
+    extra_hosts:
+      - "namenode:172.21.1.1"
+      - "datanode1:172.21.1.11"
+      - "datanode2:172.21.1.12"
+      - "resourcemanager:172.21.1.21"
+      - "nodemanager:172.21.1.31"
+  
+networks:
+  spark_network:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+volumes:
+  hadoop_namenode:
+  hadoop_datanode1:
+  hadoop_datanode2:
+  hadoop_historyserver:
