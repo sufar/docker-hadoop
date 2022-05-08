@@ -1,3 +1,6 @@
+Hadoop runs on docker for MacOS M1
+
+hadoop 3.3.0 run on docker. In my macOS Big Sur m1, it works well 
 
 # Thanks
 
